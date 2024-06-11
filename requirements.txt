@@ -1,0 +1,4 @@
+flask
+pandasai
+streamlit
+python-dotenv
