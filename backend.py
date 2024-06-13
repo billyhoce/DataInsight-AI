@@ -13,6 +13,7 @@ load_dotenv()
 llm = OpenAI()
 
 existing_file_names = []
+existing_dataframes = []
 prompt_history = []
 smartDatalake = None
 
@@ -25,13 +26,25 @@ def read_csv_excel_from_path(filename, filepath):
     elif filename.endswith('.xlsx') or filename.endswith('.xls'):
         return pd.read_excel(filepath)
 
+def update_datalake():
+    global smartDatalake
+    smartDatalake = SmartDatalake(existing_dataframes, 
+                                  config={"llm": llm, 
+                                          "open_charts": False, 
+                                          "save_charts": True, 
+                                          "response_parser": StreamlitResponse})
+
+def add_to_existing_files(filename, data):
+    existing_file_names.append(filename)
+    existing_dataframes.append(data)
+    update_datalake()
+
 def initialise():
     # Create upload folder if it does not exist
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
-    # Track all uploaded files on app startup and create a datalake
-    dataframes = []
+    # Track all uploaded files on app startup
     for filename in os.listdir(app.config['UPLOAD_FOLDER']):
 
         # Ignore all file types that are not CSV, XLS or XLSX
@@ -41,11 +54,10 @@ def initialise():
         # Track existing files
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         existing_file_names.append(filename)
-        dataframes.append(read_csv_excel_from_path(filename, filepath))
+        existing_dataframes.append(read_csv_excel_from_path(filename, filepath))
 
-    # Instantiate chat agent with existing dataframes
-    global smartDatalake
-    smartDatalake = SmartDatalake(dataframes, config={"llm": llm, "open_charts": False, "save_charts": True, "response_parser": StreamlitResponse})
+    update_datalake()
+    
 
 initialise()
 
@@ -59,8 +71,13 @@ def upload_file():
     
     # Save file while ensuring tha safe filename
     filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    existing_file_names.append(filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(file_path)
+
+    # Add this new file into existing files for AI's use
+    df = pd.read_csv(file_path) if filename.endswith('.csv') else pd.read_excel(file_path)
+    add_to_existing_files(filename=filename, data=df)
+
     return jsonify({'message': 'File uploaded successfully', 'filename': filename}), 200
 
 @app.route('/list-files', methods=['GET'])
@@ -98,7 +115,7 @@ def top_n_rows():
 def ask_question():
     question = request.json['question']
     try:
-        answer = smartDatalake.chat(question)
+        answer = str(smartDatalake.chat(question))
 
         # Save the question and answer to history
         prompt_history.append({'question': question, 'answer': answer})

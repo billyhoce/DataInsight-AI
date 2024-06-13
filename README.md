@@ -1,7 +1,7 @@
 # DataInsight-AI
 
 AI that allows users to perform AI analysis of uploaded datasets using prompts
-Prompts can even include instructions for plotting charts
+Prompts can include instructions for plotting charts (May not always work)
 
 # Instructions to run
 
@@ -20,4 +20,7 @@ Prompts can even include instructions for plotting charts
 
   - The temporary OpenAI API key is not version controlled for security purposes (So others cannot obtain the key from github)
 
--
+- Handling of prompts that request for plotting of images:
+
+  - Pandas AI sometimes fail to recognise to not run "plt.show()", resulting in the AI rejecting the generated code as it would result in the code running until the Matplotlib GUI is closed. This results in the AI not being able to give an answer.
+  - Upon testing, identical prompts may sometimes result in a success, and sometimes a failure. This is likely due to the internals of Pandas AI.
