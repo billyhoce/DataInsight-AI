@@ -1,6 +1,7 @@
 # DataInsight-AI
 
 AI that allows users to perform AI analysis of uploaded datasets using prompts
+Prompts can even include instructions for plotting charts
 
 # Instructions to run
 
@@ -16,4 +17,7 @@ AI that allows users to perform AI analysis of uploaded datasets using prompts
   - I decided to use Flask research seems to suggest it is more beginner friendly (since this is my first python application). There is also not a very big need for efficiency since it is a simple app with only a few functions. However, in larger applications where asynchronous support may have a bigger impact, FastAPI might be better.
 
 - Security of OpenAI API key:
+
   - The temporary OpenAI API key is not version controlled for security purposes (So others cannot obtain the key from github)
+
+-

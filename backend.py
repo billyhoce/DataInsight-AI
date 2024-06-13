@@ -1,11 +1,10 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import pandas as pd
-from pandasai import Agent
 from pandasai import SmartDatalake
-from pandasai import SmartDataframe
 from pandasai.llm import OpenAI
+from pandasai.responses.streamlit_response import StreamlitResponse
 import os
 
 app = Flask(__name__)
@@ -15,7 +14,7 @@ llm = OpenAI()
 
 existing_file_names = []
 prompt_history = []
-agent = None
+smartDatalake = None
 
 def is_accepted_file_type(filename):
     return filename.endswith('.csv') or filename.endswith('.xls') or filename.endswith('.xlsx')
@@ -45,8 +44,8 @@ def initialise():
         dataframes.append(read_csv_excel_from_path(filename, filepath))
 
     # Instantiate chat agent with existing dataframes
-    global agent
-    agent = Agent(dataframes)
+    global smartDatalake
+    smartDatalake = SmartDatalake(dataframes, config={"llm": llm, "open_charts": False, "save_charts": True, "response_parser": StreamlitResponse})
 
 initialise()
 
@@ -97,12 +96,17 @@ def top_n_rows():
 
 @app.route('/ask_question', methods=['POST'])
 def ask_question():
-    data = request.json
     question = request.json['question']
     try:
-        answer = str(agent.chat(question))
+        answer = smartDatalake.chat(question)
+
         # Save the question and answer to history
         prompt_history.append({'question': question, 'answer': answer})
+
+        # If the answer is path to image file
+        if answer.endswith('.png'):
+            return send_file(answer, mimetype='image/png')
+    
         return jsonify({'answer': answer}), 200
     except Exception as e:
         print(e)

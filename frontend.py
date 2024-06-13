@@ -27,10 +27,13 @@ def display_top_n_rows(filename, n, sheet_name=None):
 def ask_question(question):
     response = requests.post("http://localhost:5000/ask_question", json={'question': question})
     if response.status_code == 200:
-        return response.json().get('answer', 'No answer returned')
+        if 'image/png' in response.headers.get('Content-Type', ''):
+            return response.content, 'image'
+        else:
+            return response.json().get('answer', 'No answer returned'), 'text'
     else:
         st.error("Failed to get answer for the question")
-        return None
+        return None, None
     
 def fetch_prompt_history():
     response = requests.get("http://localhost:5000/get_prompt_history")
@@ -67,8 +70,11 @@ if file_list:
     prompt = st.text_area("Enter your prompt:")
     if st.button("Ask"):
         if prompt:
-            answer = ask_question(prompt)
-            st.write(f"Answer: {answer}")
+            answer, answer_type = ask_question(prompt)
+            if answer_type == 'image':
+                st.image(answer)
+            else:
+                st.write(f"Answer: {answer}")
         else:
             st.warning("Please enter a prompt!")
 
