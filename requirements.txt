@@ -1,4 +1,5 @@
 flask
+PyYAML
 pandasai
 streamlit
 python-dotenv

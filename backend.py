@@ -2,21 +2,45 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 import pandas as pd
+from pandasai import Agent
+from pandasai import SmartDatalake
+from pandasai import SmartDataframe
+from pandasai.llm import OpenAI
 import os
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 uploaded_files = []
+load_dotenv()
+llm = OpenAI()
+prompt_history = []
+
+def is_accepted_file_type(filename):
+    return filename.endswith('.csv') or filename.endswith('.xls') or filename.endswith('.xlsx')
+
+def read_csv_excel_from_path(filename, filepath):
+    if filename.endswith('.csv'):
+        return pd.read_csv(filepath)
+    elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+        return pd.read_excel(filepath)
 
 def initialise():
     # Create upload folder if it does not exist
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
-    # Track all uploaded files on app startup
+    # Track all uploaded files on app startup and create a datalake
+    dataframes = []
     for filename in os.listdir(app.config['UPLOAD_FOLDER']):
-        if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
-            uploaded_files.append(filename)
+
+        # Ignore all file types that are not CSV, XLS or XLSX
+        if not is_accepted_file_type(filename):
+            continue
+
+        # Track file and add to datalake
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        uploaded_files.append(filename)
+        dataframes.append(read_csv_excel_from_path(filename, filepath))
 
 initialise()
 
@@ -28,7 +52,7 @@ def upload_file():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
     
-    # Save file while ensuring a safe filename
+    # Save file while ensuring tha safe filename
     filename = secure_filename(file.filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     uploaded_files.append(filename)
@@ -65,5 +89,26 @@ def top_n_rows():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/ask_question', methods=['POST'])
+def ask_question():
+    data = request.json
+    filename = secure_filename(data['filename'])
+    question = data['question']
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+        df = read_csv_excel_from_path(filename, file_path)
+        sdf = SmartDataframe(df, config={"llm": llm})
+        answer = sdf.chat(question)
+        # Save the question and answer to history
+        prompt_history.append({'filename': filename, 'question': question, 'answer': answer})
+        return jsonify({'answer': answer}), 200
+    except Exception as e:
+        print(e)
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, extra_files=[], use_reloader=False)
