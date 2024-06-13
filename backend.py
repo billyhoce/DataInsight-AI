@@ -98,8 +98,7 @@ def top_n_rows():
 @app.route('/ask_question', methods=['POST'])
 def ask_question():
     data = request.json
-    question = data['question']
-
+    question = request.json['question']
     try:
         answer = str(agent.chat(question))
         # Save the question and answer to history
@@ -108,6 +107,10 @@ def ask_question():
     except Exception as e:
         print(e)
         return jsonify({'error': str(e)}), 500
+
+@app.route('/get_prompt_history', methods=['GET'])
+def get_prompt_history():
+    return jsonify({'history': prompt_history}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, extra_files=[], use_reloader=False)

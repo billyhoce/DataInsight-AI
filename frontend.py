@@ -31,6 +31,14 @@ def ask_question(question):
     else:
         st.error("Failed to get answer for the question")
         return None
+    
+def fetch_prompt_history():
+    response = requests.get("http://localhost:5000/get_prompt_history")
+    if response.status_code == 200:
+        return response.json().get('history', [])
+    else:
+        st.error("Failed to fetch prompt history")
+        return []
 
 st.title("Data Querying with PandasAI")
 
@@ -63,3 +71,10 @@ if file_list:
             st.write(f"Answer: {answer}")
         else:
             st.warning("Please enter a prompt!")
+
+# Display Prompt History
+st.subheader("Prompt History")
+prompt_history = fetch_prompt_history()
+if prompt_history:
+    for idx, record in enumerate(prompt_history):
+        st.write(f"Prompt ID: {idx}, Question: {record['question']}, Answer: {record['answer']}")
