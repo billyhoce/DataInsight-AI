@@ -7,8 +7,7 @@ def upload_file_to_backend(file_to_upload):
     response = requests.post("http://localhost:5000/upload", files=files)
     return response
 
-# Function to fetch and display the list of uploaded files
-def fetch_files():
+def fetch_file_namelist():
     response = requests.get("http://localhost:5000/list-files")
     if response.status_code == 200:
         return response.json().get('files', [])
@@ -16,7 +15,6 @@ def fetch_files():
         st.error("Failed to fetch file list")
         return []
     
-# Function to display the top N rows of a file
 def display_top_n_rows(filename, n, sheet_name=None):
     params = {'filename': filename, 'n': n, 'sheet_name': sheet_name}
     response = requests.get("http://localhost:5000/top_n_rows", params=params)
@@ -38,7 +36,7 @@ with st.form("upload-form", clear_on_submit=True):
             upload_file_to_backend(new_file)
 
 # Display the list of uploaded files
-file_list = fetch_files()
+file_list = fetch_file_namelist()
 if file_list:
     st.subheader("Uploaded Files")
     selected_file = st.selectbox("Select a file to display top N rows", file_list)

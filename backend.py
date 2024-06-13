@@ -31,6 +31,7 @@ def upload_file():
     # Save file while ensuring a safe filename
     filename = secure_filename(file.filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    uploaded_files.append(filename)
     return jsonify({'message': 'File uploaded successfully', 'filename': filename}), 200
 
 @app.route('/list-files', methods=['GET'])
