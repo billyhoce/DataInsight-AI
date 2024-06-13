@@ -10,10 +10,12 @@ import os
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
-uploaded_files = []
 load_dotenv()
 llm = OpenAI()
+
+existing_file_names = []
 prompt_history = []
+agent = None
 
 def is_accepted_file_type(filename):
     return filename.endswith('.csv') or filename.endswith('.xls') or filename.endswith('.xlsx')
@@ -37,10 +39,14 @@ def initialise():
         if not is_accepted_file_type(filename):
             continue
 
-        # Track file and add to datalake
+        # Track existing files
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        uploaded_files.append(filename)
+        existing_file_names.append(filename)
         dataframes.append(read_csv_excel_from_path(filename, filepath))
+
+    # Instantiate chat agent with existing dataframes
+    global agent
+    agent = Agent(dataframes)
 
 initialise()
 
@@ -55,12 +61,12 @@ def upload_file():
     # Save file while ensuring tha safe filename
     filename = secure_filename(file.filename)
     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    uploaded_files.append(filename)
+    existing_file_names.append(filename)
     return jsonify({'message': 'File uploaded successfully', 'filename': filename}), 200
 
 @app.route('/list-files', methods=['GET'])
 def list_files():
-    return jsonify({'files': uploaded_files}), 200
+    return jsonify({'files': existing_file_names}), 200
 
 @app.route('/top_n_rows', methods=['GET'])
 def top_n_rows():
@@ -92,19 +98,12 @@ def top_n_rows():
 @app.route('/ask_question', methods=['POST'])
 def ask_question():
     data = request.json
-    filename = secure_filename(data['filename'])
     question = data['question']
 
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
-
     try:
-        df = read_csv_excel_from_path(filename, file_path)
-        sdf = SmartDataframe(df, config={"llm": llm})
-        answer = sdf.chat(question)
+        answer = str(agent.chat(question))
         # Save the question and answer to history
-        prompt_history.append({'filename': filename, 'question': question, 'answer': answer})
+        prompt_history.append({'question': question, 'answer': answer})
         return jsonify({'answer': answer}), 200
     except Exception as e:
         print(e)

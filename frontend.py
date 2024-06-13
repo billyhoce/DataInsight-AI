@@ -24,8 +24,8 @@ def display_top_n_rows(filename, n, sheet_name=None):
     else:
         st.error(f"Failed to fetch top {n} rows for {filename}")
 
-def ask_question(filename, question):
-    response = requests.post("http://localhost:5000/ask_question", json={'filename': filename, 'question': question})
+def ask_question(question):
+    response = requests.post("http://localhost:5000/ask_question", json={'question': question})
     if response.status_code == 200:
         return response.json().get('answer', 'No answer returned')
     else:
@@ -53,22 +53,13 @@ if file_list:
     if st.button("Display Top N Rows"):
         display_top_n_rows(selected_file, n, sheet_name)
 
-# # Allow users to enter prompt
-# prompt = st.text_area("Enter your prompt:")
-# if st.button("Ask"):
-#     if prompt:
-#         st.write("Please hold on, the response is being generated")
-#     else:
-#         st.warning("Please enter a prompt!")
-
 # Allow users to enter prompt
 if file_list:
     st.subheader("Ask Questions")
-    selected_file_for_question = st.selectbox("Select a file to ask a question", file_list)
     prompt = st.text_area("Enter your prompt:")
     if st.button("Ask"):
         if prompt:
-            answer = ask_question(selected_file_for_question, prompt)
+            answer = ask_question(prompt)
             st.write(f"Answer: {answer}")
         else:
             st.warning("Please enter a prompt!")
