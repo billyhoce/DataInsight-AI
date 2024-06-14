@@ -45,12 +45,6 @@ def fetch_prompt_history():
         st.error("Failed to fetch prompt history")
         return []
 
-# Initialize session state variables
-if 'file_selected' not in st.session_state:
-    st.session_state.file_selected = None
-if 'top_n_rows' not in st.session_state:
-    st.session_state.top_n_rows = None
-
 st.title(":red[Data Querying with PandasAI]")
 
 files_col, chat_col = st.columns(2, gap="large")
@@ -99,12 +93,12 @@ with chat_col:
             else:
                 st.warning("Please enter a prompt!")
 
-    # Display Prompt History
-    st.subheader("Prompt History")
-    prompt_history = fetch_prompt_history()
-    prompt_history.reverse()
-    if prompt_history:
-        with st.container(height=500):
-            for idx, record in enumerate(prompt_history):
-                with st.container(border=True):
-                    st.write(f":orange[Question: {record['question']}]  \nAnswer: {record['answer']}")
+        # Display Prompt History
+        st.subheader("Prompt History")
+        prompt_history = fetch_prompt_history()
+        prompt_history.reverse()
+        if prompt_history:
+            with st.container(height=500):
+                for idx, record in enumerate(prompt_history):
+                    with st.container(border=True):
+                        st.write(f":orange[Question: {record['question']}]  \nAnswer: {record['answer']}")

@@ -5,8 +5,9 @@ Prompts can include instructions for plotting charts (May not always work)
 
 # Instructions to run
 
+- Clone this repository and navigate here using a terminal
 - Install the requirements on either your local or virtual python environment by using `pip install -r .\requirements.txt`
-- In the .env file in this directory, insert the API key
+- In the .env file in this directory, insert the OpenAI API key
 
 # Considerations when creating this application
 
@@ -20,7 +21,7 @@ Prompts can include instructions for plotting charts (May not always work)
 
   - The temporary OpenAI API key is not version controlled for security purposes (So others cannot obtain the key from github)
 
-- Handling of prompts that request for plotting of images:
+- ISSUE: Handling of prompts that request for plotting of images:
 
   - Pandas AI sometimes fail to recognise to not run "plt.show()", resulting in the AI rejecting the generated code as it would result in the code running until the Matplotlib GUI is closed. This results in the AI not being able to give an answer.
   - Upon testing, identical prompts may sometimes result in a success, and sometimes a failure. This is likely due to the internals of Pandas AI.
