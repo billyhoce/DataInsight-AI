@@ -1,6 +1,7 @@
 # DataInsight-AI
 
 AI that allows users to perform AI analysis of uploaded datasets using prompts
+
 Prompts can include instructions for plotting charts (May not always work)
 
 # Instructions to run
