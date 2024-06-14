@@ -21,6 +21,10 @@ Prompts can include instructions for plotting charts (May not always work)
 
   - The temporary OpenAI API key is not version controlled for security purposes (So others cannot obtain the key from github)
 
+- Making file names safe:
+
+  - When uploading new files, file names are made secure to prevent injection attacks
+
 - ISSUE: Handling of prompts that request for plotting of images:
 
   - Pandas AI sometimes fail to recognise to not run "plt.show()", resulting in the AI rejecting the generated code as it would result in the code running until the Matplotlib GUI is closed. This results in the AI not being able to give an answer.
