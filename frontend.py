@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 
+st.set_page_config(layout="wide")
+
 def upload_file_to_backend(file_to_upload):
     files = {'file': (file_to_upload.name, file_to_upload, file_to_upload.type)}
     response = requests.post("http://localhost:5000/upload", files=files)
@@ -15,12 +17,12 @@ def fetch_file_namelist():
         st.error("Failed to fetch file list")
         return []
     
-def display_top_n_rows(filename, n, sheet_name=None):
+def display_top_n_rows(filename, n, container, sheet_name=None):
     params = {'filename': filename, 'n': n, 'sheet_name': sheet_name}
     response = requests.get("http://localhost:5000/top_n_rows", params=params)
     if response.status_code == 200:
         df = pd.read_json(response.text)
-        st.write(df)
+        container.write(df)
     else:
         st.error(f"Failed to fetch top {n} rows for {filename}")
 
@@ -43,44 +45,66 @@ def fetch_prompt_history():
         st.error("Failed to fetch prompt history")
         return []
 
-st.title("Data Querying with PandasAI")
+# Initialize session state variables
+if 'file_selected' not in st.session_state:
+    st.session_state.file_selected = None
+if 'top_n_rows' not in st.session_state:
+    st.session_state.top_n_rows = None
 
-# Form for uploading of files
-with st.form("upload-form", clear_on_submit=True):
-    new_files = st.file_uploader("Upload CSV/Excel files", type=['csv', 'xls', 'xlsx'], accept_multiple_files=True)
-    submitted = st.form_submit_button()
+st.title(":red[Data Querying with PandasAI]")
 
-    if submitted and new_files is not None:
-        for new_file in new_files:
-            upload_file_to_backend(new_file)
+files_col, chat_col = st.columns(2, gap="large")
 
-# Display the list of uploaded files
-file_list = fetch_file_namelist()
-if file_list:
-    st.subheader("Uploaded Files")
-    selected_file = st.selectbox("Select a file to display top N rows", file_list)
-    n = st.number_input("Enter number of rows to display", min_value=1, step=1)
-    sheet_name = st.text_input("Enter sheet name (if applicable)")
-    if st.button("Display Top N Rows"):
-        display_top_n_rows(selected_file, n, sheet_name)
+with files_col:
+    st.header("Data Overview")
+    # Form for uploading of files
+    with st.form("upload-form", clear_on_submit=True):
+        new_files = st.file_uploader("Upload CSV/Excel files", type=['csv', 'xls', 'xlsx'], accept_multiple_files=True)
+        submitted = st.form_submit_button()
 
-# Allow users to enter prompt
-if file_list:
-    st.subheader("Ask Questions")
-    prompt = st.text_area("Enter your prompt:")
-    if st.button("Ask"):
-        if prompt:
-            answer, answer_type = ask_question(prompt)
-            if answer_type == 'image':
-                st.image(answer)
+        if submitted and new_files is not None:
+            for new_file in new_files:
+                upload_file_to_backend(new_file)
+
+    # Display the list of uploaded files
+    file_list = fetch_file_namelist()
+    if file_list:
+        selected_file = st.selectbox("Select a file to take a peek at", file_list)
+
+        choose_row, choose_sheet = st.columns(2)
+        with choose_row:
+            n = st.number_input("Enter number of rows to display", min_value=1, step=1)
+        with choose_sheet:
+            sheet_name = st.text_input("Enter sheet name (if applicable)")
+    
+        if st.button("Take a peek", type="primary"):
+            c = st.container(border=True)
+            display_top_n_rows(selected_file, n, c, sheet_name)
+
+with chat_col:
+    # Allow users to enter prompt
+    if file_list:
+        st.header("Ask Questions About Your Datasets")
+        prompt = st.text_area("Enter your prompt:")
+        if st.button("Ask"):
+            if prompt:
+                answer = None
+                answer_type = None
+                with st.spinner("Generating your answer, please wait..."):
+                    answer, answer_type = ask_question(prompt)
+                if answer_type == 'image':
+                    st.image(answer)
+                else:
+                    st.write(f"Answer: {answer}")
             else:
-                st.write(f"Answer: {answer}")
-        else:
-            st.warning("Please enter a prompt!")
+                st.warning("Please enter a prompt!")
 
-# Display Prompt History
-st.subheader("Prompt History")
-prompt_history = fetch_prompt_history()
-if prompt_history:
-    for idx, record in enumerate(prompt_history):
-        st.write(f"Prompt ID: {idx}, Question: {record['question']}, Answer: {record['answer']}")
+    # Display Prompt History
+    st.subheader("Prompt History")
+    prompt_history = fetch_prompt_history()
+    prompt_history.reverse()
+    if prompt_history:
+        with st.container(height=500):
+            for idx, record in enumerate(prompt_history):
+                with st.container(border=True):
+                    st.write(f":orange[Question: {record['question']}]  \nAnswer: {record['answer']}")
